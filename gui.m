@@ -22,7 +22,7 @@ function varargout = gui(varargin)
 
 % Edit the above text to modify the response to help gui
 
-% Last Modified by GUIDE v2.5 14-Mar-2019 21:59:36
+% Last Modified by GUIDE v2.5 24-Mar-2019 10:49:36
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -180,5 +180,12 @@ function pushbutton2_Callback(hObject, eventdata, handles)
 % --- Executes during object deletion, before destroying properties.
 function axes3_DeleteFcn(hObject, eventdata, handles)
 % hObject    handle to axes3 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --- Executes on button press in pushbutton3.
+function pushbutton3_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton3 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
