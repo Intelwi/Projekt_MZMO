@@ -179,7 +179,7 @@ function startButton_Callback(hObject, eventdata, handles)
     if ismember('/bottom_kinect/rgb/image_raw', rostopic('list'))
         imsub = rossubscriber('/bottom_kinect/rgb/image_raw');
     end
-    Z = zeros(100,1);
+    Z = []
     odom = rossubscriber('/gazebo_odom');
     while 1
         % pobranie obrazu
@@ -195,11 +195,11 @@ function startButton_Callback(hObject, eventdata, handles)
         %pobranie polozenia
         odomdata = receive(odom,3);
         twist = odomdata.Twist.Twist;
-        z = twist.Angular.Z;
-        Z = [Z(2:end);z];
+        z = twist.Angular.Z
+        Z = [z Z(1:end-1)]
         %rysowanie wykresu predkosci katawej
         axes(handles.angularVel)
-        plot(Z);
+        plot(z);
         drawnow;
         
         %rysowanie obrazu
