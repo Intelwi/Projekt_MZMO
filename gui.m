@@ -179,8 +179,30 @@ function startButton_Callback(hObject, eventdata, handles)
     if ismember('/bottom_kinect/rgb/image_raw', rostopic('list'))
         imsub = rossubscriber('/bottom_kinect/rgb/image_raw');
     end
+    
+    % wektory do rysowania wektorow
     Z = zeros(100,1);
+    X = zeros(100,1);
     odom = rossubscriber('/gazebo_odom');
+    
+    %velocity publisher
+    robot = rospublisher('/mux_vel_keyboard/cmd_vel') ;
+    velmsg = rosmessage(robot);
+    
+    %inicjalizacja stalych
+    K = str2double(get(handles.kPid,'String'))
+    Ti = str2double(get(handles.tiPid,'String'))
+    Td = str2double(get(handles.tdPid,'String'))
+    T = 0.01;
+    xzad = 340;
+    r0 = K*(1+T/(2*Ti)+Td/T);
+    r1 = K*(T/(2*Ti)-2*Td/T-1);
+    r2 = K*Td/T;
+    E = zeros(3,1);
+    upast = 0;
+    Umax = 0.5;
+    Umin = -0.5;
+    linVel = 0.2;
     while 1
         % pobranie obrazu
         img = receive(imsub);
@@ -191,6 +213,8 @@ function startButton_Callback(hObject, eventdata, handles)
         I5 = imcomplement(I4);
         stats = regionprops(I5,'Centroid');
         centroids = cat(1, stats.Centroid);
+        x = centroids(:,1);
+        X = [X(2:end);x];
         
         %pobranie polozenia
         odomdata = receive(odom,3);
@@ -198,16 +222,35 @@ function startButton_Callback(hObject, eventdata, handles)
         z = twist.Angular.Z;
         Z = [Z(2:end);z];
         %rysowanie wykresu predkosci katawej
-        axes(handles.angularVel)
-        plot(Z);
-        drawnow;
+        plot(handles.angularVel,Z);
+        
+        
+        %rysowanie wykresu wspolrzednej X srodka linii
+        plot(handles.xCoord,X);
+        
         
         %rysowanie obrazu
         axes(handles.cameraImage);
         imshow(I4);
         hold on
-        plot(centroids(:,1), centroids(:,2), 'b*')
+        plot(x, centroids(:,2), 'b*')
         hold off
+        
+        %wyslanie predkosci
+        e = xzad - x;
+        E = [e;E(1:end-1)];
+        %sterowanie z przesunieciem o punkt pracy
+        u = r2*E(3)+r1*E(2)+r0*E(1)+upast;
+        upast = u;
+        if u > Umax
+            u = Umax;
+        elseif u < Umin
+            u = Umin;
+        end
+        velmsg.Linear.X = linVel;
+        velmsg.Angular.Z = u;
+        send(robot,velmsg);
+        pause(T);
     end
 
 
