@@ -172,7 +172,7 @@ function startButton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 %inicjalizacja polaczenia
-    IP_OF_ROBOT = '192.168.18.90'
+    IP_OF_ROBOT = '192.168.18.101'
     IP_OF_HOST_COMPUTER = '192.168.18.223'
     rosinit(IP_OF_ROBOT,'NodeHost',IP_OF_HOST_COMPUTER);
     
@@ -190,9 +190,11 @@ function startButton_Callback(hObject, eventdata, handles)
     velmsg = rosmessage(robot);
     
     %inicjalizacja stalych
-    K = str2double(get(handles.kPid,'String'))
-    Ti = str2double(get(handles.tiPid,'String'))
-    Td = str2double(get(handles.tdPid,'String'))
+    K = str2double(get(handles.kPid,'String'));
+    Ti = str2double(get(handles.tiPid,'String'));
+    Td = str2double(get(handles.tdPid,'String'));
+    radiobuttonContours = get(handles.contoursRadioButton,'Value')
+    radiobuttonPoints = get(handles.pointsRadioButton,'Value')
     T = 0.01;
     xzad = 340;
     r0 = K*(1+T/(2*Ti)+Td/T);
@@ -211,10 +213,16 @@ function startButton_Callback(hObject, eventdata, handles)
         I3=rgb2gray(img);
         I4 = imbinarize(I3);
         I5 = imcomplement(I4);
-        stats = regionprops(I5,'Centroid');
-        centroids = cat(1, stats.Centroid);
-        x = centroids(:,1);
-        X = [X(2:end);x];
+        
+        %wyznaczenie srodka linii
+        if(radiobuttonContours)
+            stats = regionprops(I5,'Centroid');
+            centroids = cat(1, stats.Centroid);
+            x = centroids(:,1);
+            X = [X(2:end);x];
+        end
+            
+            
         
         %pobranie polozenia
         odomdata = receive(odom,3);
