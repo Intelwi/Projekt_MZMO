@@ -172,7 +172,7 @@ function startButton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 %inicjalizacja polaczenia
-    IP_OF_ROBOT = '192.168.18.101'
+    IP_OF_ROBOT = '192.168.18.90'
     IP_OF_HOST_COMPUTER = '192.168.18.223'
     rosinit(IP_OF_ROBOT,'NodeHost',IP_OF_HOST_COMPUTER);
     
@@ -193,18 +193,23 @@ function startButton_Callback(hObject, eventdata, handles)
     K = str2double(get(handles.kPid,'String'));
     Ti = str2double(get(handles.tiPid,'String'));
     Td = str2double(get(handles.tdPid,'String'));
+    
     radiobuttonContours = get(handles.contoursRadioButton,'Value')
     radiobuttonPoints = get(handles.pointsRadioButton,'Value')
+    
     T = 0.01;
+    
     xzad = 340;
     r0 = K*(1+T/(2*Ti)+Td/T);
     r1 = K*(T/(2*Ti)-2*Td/T-1);
     r2 = K*Td/T;
     E = zeros(3,1);
+    
     upast = 0;
     Umax = 0.5;
     Umin = -0.5;
     linVel = 0.2;
+    
     while 1
         % pobranie obrazu
         img = receive(imsub);
@@ -218,43 +223,65 @@ function startButton_Callback(hObject, eventdata, handles)
         if(radiobuttonContours)
             stats = regionprops(I5,'Centroid');
             centroids = cat(1, stats.Centroid);
-            x = centroids(:,1);
+            x = centroids(1);
+            y = centroids(2);
             X = [X(2:end);x];
         end
-            
-            
+        
+        if(radiobuttonPoints)
+            a = size(I5);
+            p_num = 4;
+            y_step = round(a(1)/p_num);
+            avgs_x = zeros(p_num-1,1);
+            for i=1:p_num-1
+                %Jak find nic nie znajdzie to Nan!
+                %trzeba użyć nanmean()
+                avgs_x(i) = mean(find(~I5(y_step*i,:)));
+            end
+            avgs_x
+            x = mean(avgs_x)
+            y = 2*y_step;
+            X = [X(2:end);x];
+        end
         
         %pobranie polozenia
         odomdata = receive(odom,3);
         twist = odomdata.Twist.Twist;
         z = twist.Angular.Z;
         Z = [Z(2:end);z];
+        
         %rysowanie wykresu predkosci katawej
         plot(handles.angularVel,Z);
         
-        
         %rysowanie wykresu wspolrzednej X srodka linii
         plot(handles.xCoord,X);
-        
         
         %rysowanie obrazu
         axes(handles.cameraImage);
         imshow(I4);
         hold on
-        plot(x, centroids(:,2), 'b*')
+        plot(x, y, 'b*')
         hold off
         
-        %wyslanie predkosci
+        %sterowanie z przesunieciem o punkt pracy
         e = xzad - x;
         E = [e;E(1:end-1)];
-        %sterowanie z przesunieciem o punkt pracy
+       
         u = r2*E(3)+r1*E(2)+r0*E(1)+upast;
+        
+        if(isnan(u))
+            u=0;
+        end
+        
         upast = u;
+        
         if u > Umax
             u = Umax;
         elseif u < Umin
             u = Umin;
         end
+        
+        %wyslanie predkosci
         velmsg.Linear.X = linVel;
         velmsg.Angular.Z = u;
         send(robot,velmsg);
@@ -274,4 +301,12 @@ function stopButton_Callback(hObject, eventdata, handles)
 % hObject    handle to stopButton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+ %velocity publisher
+    robot = rospublisher('/mux_vel_keyboard/cmd_vel') ;
+    velmsg = rosmessage(robot);
+    velmsg.Linear.X = 0;
+    velmsg.Angular.Z = 0;
+    for i=0:1:20
+        send(robot,velmsg);
+    end
     rosshutdown;
