@@ -312,7 +312,6 @@ function startButton_Callback(hObject, eventdata, handles)
         u = r2*E(3)+r1*E(2)+r0*E(1)+upast;
         
         if(isnan(u))
-            u
             u=0;
         end
         
@@ -325,14 +324,10 @@ function startButton_Callback(hObject, eventdata, handles)
             u = Umin;
         end
         
-        % tworzenie pakietu z predkascia linowa robota
+        %wyslanie predkosci
         velmsg.Linear.X = linVel;
         velmsg.Angular.Z = u;
-        
-        % wyslanie predkosci do robota
         send(robot,velmsg);
-        
-        % czekanie żeby był okres próbkowania
         pause(T);
     end
 
