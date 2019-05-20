@@ -1,9 +1,11 @@
-C = pidstd(1,0.5,'Ts',0.1,'IFormula','Trapezoidal')
-C=tf(C);
-a = C.Numerator{1}(1);
- b=C.Numerator{1}(2);
- c=C.Denominator{1}(1);
- d=C.Denominator{1}(2);
+C = pidstd(1,0.5,2,'Ts',0.1,'IFormula','Trapezoidal');
+C=tf(C)
+a = C.Numerator{1}(1)
+ b=C.Numerator{1}(2)
+ d = C.Numerator{1}(3)
+ d=C.Denominator{1}(1)
+ e=C.Denominator{1}(2)
+ 
 K=12;
 Ti=50;
 Td=10;

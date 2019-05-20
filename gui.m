@@ -174,8 +174,8 @@ function startButton_Callback(hObject, eventdata, handles)
 %inicjalizacja polaczenia
 
     % nawaiznie polaczenia z robotem
-    IP_OF_ROBOT = '192.168.18.101'
-    IP_OF_HOST_COMPUTER = '192.168.18.223'
+    IP_OF_ROBOT = '192.168.18.101';
+    IP_OF_HOST_COMPUTER = '192.168.18.223';
     rosinit(IP_OF_ROBOT,'NodeHost',IP_OF_HOST_COMPUTER);
     
     % pobranie obrazu z robota
@@ -194,25 +194,41 @@ function startButton_Callback(hObject, eventdata, handles)
     robot = rospublisher('/mux_vel_keyboard/cmd_vel') ;
     velmsg = rosmessage(robot);
     
-    % inicjalizacja do regulatora PID
+    % nastawy do regulatora PID
     K = str2double(get(handles.kPid,'String'));
     Ti = str2double(get(handles.tiPid,'String'));
     Td = str2double(get(handles.tdPid,'String'));
     
     % pobranie informacji o sposobie wykrywania linii
-    radiobuttonContours = get(handles.contoursRadioButton,'Value')
-    radiobuttonPoints = get(handles.pointsRadioButton,'Value')
+    radiobuttonContours = get(handles.contoursRadioButton,'Value');
+    radiobuttonPoints = get(handles.pointsRadioButton,'Value');
     
     % czas probkowania
     T = 0.01;
     
     % zadana pozycja srodka linii na obrazie
     xzad = 340;
+    XZad = ones(100,1)*xzad;
     
-    % do regulatora PID
+    % regulator PID
     r0 = K*(1+T/(2*Ti)+Td/T);
     r1 = K*(T/(2*Ti)-2*Td/T-1);
     r2 = K*Td/T;
+%     C = pidstd(K,Ti,Td,'Ts',T,'IFormula','Trapezoidal');
+%     C = tf(C);
+% 
+%     if(Td ~= 0)
+%         a1 = C.Numerator{1}(1);
+%         b1 = C.Numerator{1}(2);
+%         c1 = C.Numerator{1}(3);
+%         d1 = C.Denominator{1}(2);
+%         e1 = C.Denominator{1}(3);
+%     else
+%         a1 = C.Numerator{1}(1);
+%         b1 = C.Numerator{1}(2);
+%         c1 = C.Denominator{1}(1);
+%         d1 = C.Denominator{1}(2);
+%     end
     
     % uchyby
     E = zeros(3,1);
@@ -284,7 +300,7 @@ function startButton_Callback(hObject, eventdata, handles)
         % pobranie polozenia robota
         odomdata = receive(odom,3);
         
-        % tworzenie pakietu z predkascia katowa robota
+        % wyluskanie predkasci katowej robota
         twist = odomdata.Twist.Twist;
         z = twist.Angular.Z;
         Z = [Z(2:end);z];
@@ -293,7 +309,11 @@ function startButton_Callback(hObject, eventdata, handles)
         plot(handles.angularVel,Z);
         
         % rysowanie wykresu wspolrzednej X srodka linii
-        plot(handles.xCoord,X);
+        axes(handles.xCoord)
+        plot(X);
+        hold on;
+        plot(XZad);
+        hold off;
         
         % rysowanie obrazu z robota
         axes(handles.cameraImage);
@@ -310,6 +330,11 @@ function startButton_Callback(hObject, eventdata, handles)
        
         % wyliczenie sterowania
         u = r2*E(3)+r1*E(2)+r0*E(1)+upast;
+%         if(Td~=0)
+%             u = (c1*E(3) + b1*E(2) + a1*E(1) - e1*upast)/d1;
+%         else
+%             u = (a1*E(1) + b1*E(2) - d1*upast)/c1;
+%         end
         
         if(isnan(u))
             u
