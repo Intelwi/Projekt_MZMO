@@ -261,7 +261,7 @@ function pid_callback_fcn(obj, event, hObject, handles)
         handles.x = centroids(1);
         handles.y = centroids(2);
         % zapis do rysowania wykresu
-        handles.X = [handles.X(2:end);handles.x];
+        handles.X = [handles.X(2:end);x];
     end
     
     % wyznaczenie srodka linii poprzez usrednienie trzech punktow n
@@ -301,13 +301,13 @@ function pid_callback_fcn(obj, event, hObject, handles)
     handles.Z = [handles.Z(2:end);z];
     
     % wyliczenie uchybu do PID
-    e = handles.xzad - handles.x;
+    e = xzad - x;
     
     % zapis uchybu
     handles.E = [e;handles.E(1:end-1)];
     
     % wyliczenie sterowania
-    u = handles.r2*handles.E(3)+handles.r1*handles.E(2)+handles.r0*handles.E(1)+handles.upast
+    u = handles.r2*E(3)+handles.r1*E(2)+handles.r0*E(1)+handles.upast
     
     if(isnan(u))
         u=0;
