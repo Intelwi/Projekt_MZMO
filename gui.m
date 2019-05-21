@@ -221,14 +221,15 @@ function startButton_Callback(hObject, eventdata, handles)
         handles.imsub = rossubscriber('/bottom_kinect/rgb/image_raw');
     end
     
-    handles.PIDTimer.TimerFcn = {@pid_callback_fcn,hObject, handles};
-    handles.figureTimer.TimerFcn = {@figure_callback_fcn,hObject, handles};
-    guidata(hObject,handles);
+    handles.PIDTimer.TimerFcn = {@pid_callback_fcn,hObject};
+    handles.figureTimer.TimerFcn = {@figure_callback_fcn,hObject};
     start(handles.PIDTimer);
     start(handles.figureTimer);
+    guidata(hObject,handles);
     
-function pid_callback_fcn(obj, event, hObject, handles)
+function pid_callback_fcn(obj, event, hObject)
     
+    handles = guidata(hObject);
     robot = handles.robot;
     imsub = handles.imsub;
     odom = handles.odom;
@@ -285,11 +286,11 @@ function pid_callback_fcn(obj, event, hObject, handles)
         
         % liczenie sredniej ze srednich punktow, czyli polozenie x srodka
         % linii
-        handles.x = nanmean(avgs_x)
+        handles.x = nanmean(avgs_x);
         % polozenie y srodka linii
         handles.y = 2*y_step;
         % zapis do rysowania wykresu
-        handles.X = [handles.X(2:end);x];
+        handles.X = [handles.X(2:end);handles.x];
     end
     
     % pobranie polozenia robota
@@ -307,7 +308,7 @@ function pid_callback_fcn(obj, event, hObject, handles)
     handles.E = [e;handles.E(1:end-1)];
     
     % wyliczenie sterowania
-    u = handles.r2*handles.E(3)+handles.r1*handles.E(2)+handles.r0*handles.E(1)+handles.upast
+    u = handles.r2*handles.E(3)+handles.r1*handles.E(2)+handles.r0*handles.E(1)+handles.upast;
     
     if(isnan(u))
         u=0;
@@ -329,22 +330,21 @@ function pid_callback_fcn(obj, event, hObject, handles)
     % wyslanie predkosci do robota
     send(robot,velmsg);
     
-    % czekanie żeby był okres próbkowania
+    % zapis danych
     guidata(hObject,handles);
  
     
-function figure_callback_fcn(obj, event, hObject, handles)
+function figure_callback_fcn(obj, event, hObject)
 
+    handles = guidata(hObject);
     % rysowanie wykresu predkosci katawej
     plot(handles.angularVel,handles.Z);
-    
     % rysowanie wykresu wspolrzednej X srodka linii
-    axes(handles.xCoord)
-    plot(handles.X);
-    hold on;
-    plot(handles.XZad);
-    hold off;
-    
+    %axes(handles.xCoord)
+    plot(handles.xCoord,handles.X);
+    %hold on;
+    %plot(handles.XZad);
+    %hold off;
     % rysowanie obrazu z robota
     axes(handles.cameraImage);
     imshow(handles.image);
@@ -365,8 +365,8 @@ function stopButton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
  %velocity publisher
-    delete(handles.figureTimer)
-    delete(handles.PIDTimer)
+    stop(handles.figureTimer)
+    stop(handles.PIDTimer)
     robot = handles.robot;
     velmsg = rosmessage(robot);
     velmsg.Linear.X = 0;
