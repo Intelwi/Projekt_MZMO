@@ -55,7 +55,7 @@ function gui_OpeningFcn(hObject, eventdata, handles, varargin)
 % Choose default command line output for gui
 handles.output = hObject;
 handles.Ts = 0.01;
-handles.Tdraw = 0.5;
+handles.Tdraw = 0.2;
 handles.r0 = 0;
 handles.r1 = 0;
 handles.r2 = 0;
@@ -202,12 +202,15 @@ function startButton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 %inicjalizacja polaczenia
     % nawiazanie polaczenia z robotem
-    IP_OF_ROBOT = '192.168.18.101';
+    IP_OF_ROBOT = '192.168.18.104';
     IP_OF_HOST_COMPUTER = '192.168.18.223';
     rosinit(IP_OF_ROBOT,'NodeHost',IP_OF_HOST_COMPUTER);
     
     K = str2double(get(handles.kPid,'String'));
     Ti = str2double(get(handles.tiPid,'String'));
+    if(Ti == 0)
+        Ti = 1000000;
+    end
     Td = str2double(get(handles.tdPid,'String'));
     handles.r0 = K*(1+handles.Ts /(2*Ti)+Td/handles.Ts );
     handles.r1 = K*(handles.Ts /(2*Ti)-2*Td/handles.Ts -1);
@@ -243,7 +246,7 @@ function pid_callback_fcn(obj, event, hObject)
     % pobranie obrazu z robota
     img = receive(imsub);
     img = readImage(img);
-    
+    img = im2double(img);
     % uciecie obrazu do interesujacego obszaru
     img = imcrop(img,[0 350 640 480]);
     % konwersja obrazu na czaarno biały
@@ -340,17 +343,13 @@ function figure_callback_fcn(obj, event, hObject)
     % rysowanie wykresu predkosci katawej
     plot(handles.angularVel,handles.Z);
     % rysowanie wykresu wspolrzednej X srodka linii
-    %axes(handles.xCoord)
     plot(handles.xCoord,handles.X);
-    %hold on;
-    %plot(handles.XZad);
-    %hold off;
-    % rysowanie obrazu z robota
-    axes(handles.cameraImage);
-    imshow(handles.image);
-    hold on
-    plot(handles.x, handles.y, 'b*')
-    hold off
+    %rysowanie obrazu
+    pos = [round(handles.x) round(handles.y)];
+    handles.image = 255 * repmat(uint8(handles.image), 1, 1, 3);
+    imshow(handles.image,'Parent',handles.cameraImage);
+    viscircles(handles.cameraImage,pos,3);
+    close(gcf);
 
 % --- Executes during object deletion, before destroying properties.
 function cameraImage_DeleteFcn(hObject, eventdata, handles)
