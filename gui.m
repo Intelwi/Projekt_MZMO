@@ -1,3 +1,6 @@
+%Autor: Michał Stolarz
+
+
 function varargout = gui(varargin)
 % GUI MATLAB code for gui.fig
 %      GUI, by itself, creates a new GUI or raises the existing
@@ -52,13 +55,17 @@ function gui_OpeningFcn(hObject, eventdata, handles, varargin)
 % handles    structure with handles and user data (see GUIDATA)
 % varargin   command line arguments to gui (see VARARGIN)
 
-% Choose default command line output for gui
+%Choose default command line output for gui
 handles.output = hObject;
+% okres z jakim działa regulacja
 handles.Ts = 0.01;
+% okres z jakim odswiezane sa wykresy i obraz
 handles.Tdraw = 0.2;
+% wspolczynniki do regulatora PID
 handles.r0 = 0;
 handles.r1 = 0;
 handles.r2 = 0;
+% timery
 handles.figureTimer = timer('StartDelay', 1, 'Period', handles.Tdraw,'ExecutionMode', 'fixedRate');
 handles.PIDTimer = timer('StartDelay', 1, 'Period', handles.Ts,'ExecutionMode', 'fixedRate');
 % wektory do rysowania wektorow
@@ -66,21 +73,24 @@ handles.Z = zeros(100,1);
 handles.X = zeros(100,1);
 handles.xzad = 340;
 handles.XZad = ones(100,1)*handles.xzad;
-handles.imsub = 0; % subscriber obrazu
-handles.odom = 0; %subscriber odometrii
-handles.robot = 0; %publisher predkosci
-%obraz z robota;
+% obiekt do odbioru obrazu z robota (inicjalizacja w obsłudze przycisku 'Start')
+handles.imsub = 0; 
+% obiekt do odbioru danych o predkosci robota (inicjalizacja w obsłudze przycisku 'Start')
+handles.odom = 0; 
+% obiekt do wysylania predkosci do robota (inicjalizacja w obsłudze przycisku 'Start')
+handles.robot = 0; 
+% obraz z robota;
 handles.image = 0;
 % uchyby
 handles.E = zeros(3,1);
-% limity predkosci katawych
+% limity predkosci katowych
 handles.Umax = 0.5;
 handles.Umin = -0.5;
 % predkosc liniowa
 handles.linVel = 0.2;
 %przeszle sterowanie
 handles.upast = 0;
-% środek konturu
+% srodek wykrytej linii
 handles.x = 0;
 handles.y = 0;
 
@@ -206,6 +216,7 @@ function startButton_Callback(hObject, eventdata, handles)
     IP_OF_HOST_COMPUTER = '192.168.18.223';
     rosinit(IP_OF_ROBOT,'NodeHost',IP_OF_HOST_COMPUTER);
     
+    % inicjalizacja
     K = str2double(get(handles.kPid,'String'));
     Ti = str2double(get(handles.tiPid,'String'));
     if(Ti == 0)
@@ -249,15 +260,14 @@ function pid_callback_fcn(obj, event, hObject)
     img = im2double(img);
     % uciecie obrazu do interesujacego obszaru
     img = imcrop(img,[0 350 640 480]);
-    % konwersja obrazu na czaarno biały
+    % konwersja obrazu na czarno biały
     I3=rgb2gray(img);
     % binaryzacja
     I4 = imbinarize(I3);
     handles.image = I4;
-    % zmiana białe na czarne a czarne na białe
     I5 = imcomplement(I4);
     
-    % wyznaczenie srodka linii poprzez srodek ciezkosci obszru
+    % wyznaczenie srodka linii poprzez srodek ciezkosci obszaru
     if(radiobuttonContours)
         stats = regionprops(I5,'Centroid');
         centroids = cat(1, stats.Centroid);
@@ -282,8 +292,6 @@ function pid_callback_fcn(obj, event, hObject)
         
         % liczenie srednich polozen punktow
         for i=1:p_num-1
-            %Jak find nic nie znajdzie to zwraca Nan
-            %trzeba użyć nanmean()
             avgs_x(i) = nanmean(find(I5(y_step*i,:)));
         end
         
@@ -364,14 +372,20 @@ function stopButton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
  %velocity publisher
+    %zatrzymanie timerow
     stop(handles.figureTimer)
     stop(handles.PIDTimer)
+
     robot = handles.robot;
     velmsg = rosmessage(robot);
+
+    %zatrzymanie robota
     velmsg.Linear.X = 0;
     velmsg.Angular.Z = 0;
     for i=0:1:20
         send(robot,velmsg);
     end
+
+    % zamkniecie polaczenia z robotem
     rosshutdown;
     
