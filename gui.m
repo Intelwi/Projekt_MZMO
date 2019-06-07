@@ -202,7 +202,7 @@ function startButton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 %inicjalizacja polaczenia
     % nawiazanie polaczenia z robotem
-    IP_OF_ROBOT = '192.168.18.104';
+    IP_OF_ROBOT = '192.168.18.90';
     IP_OF_HOST_COMPUTER = '192.168.18.223';
     rosinit(IP_OF_ROBOT,'NodeHost',IP_OF_HOST_COMPUTER);
     
